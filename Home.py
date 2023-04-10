@@ -121,7 +121,7 @@ if True:
 
 # Chart
 if full_analysis:    
-    s='trend'; chart=uc.line_chart(x=yields[s].index, y=yields[s].values,name=s, color='black', mode='lines')
+    s='trend'; chart=uc.line_chart(x=yields[s].index, y=yields[s].values,name=s, color='black', mode='lines', height=750)
 
     s=GV.WD_H_GFS;uc.add_series(chart,x=yields[s].index, y=yields[s].values, name=s, color='blue')
     s=GV.WD_H_GFS_EN;uc.add_series(chart,x=yields[s].index, y=yields[s].values, name=s, color='yellow')
