@@ -9,8 +9,8 @@ import concurrent.futures
 from datetime import datetime as dt
 from calendar import isleap
 
-import APIs.GDrive as gd
-import Utilities.GLOBAL as GV
+import GDrive as gd
+import GLOBAL as GV
 
 # 'Public variables'
 if True:
