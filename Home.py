@@ -129,6 +129,7 @@ if full_analysis:
     s=GV.WD_H_ECMWF_EN;uc.add_series(chart,x=yields[s].index, y=yields[s].values, name=s, color='orange')
     s=GV.WD_HIST;uc.add_series(chart,x=yields[s].index, y=yields[s].values, name=s, color='green')
 
+    chart = uc.add_hrw_stages_on_chart(chart, x_axis_mode='actu')
     st.plotly_chart(chart, use_container_width=True)
 
 # Variables impact visualization & Coefficients
@@ -136,11 +137,13 @@ if True:
     st.markdown('---')
     st.markdown('##### Selected Weather Windows')
     fig = uc.visualize_model_ww(model=model, ref_year_start=ref_year_start, train_df=train_df, fuse_windows=False, height=750)
+    fig = uc.add_hrw_stages_on_chart(fig, x_axis_mode='seas')
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('---')
     st.markdown('##### Variables Impact')
     fig = uc.visualize_model_ww(model=model, ref_year_start=ref_year_start, train_df=train_df, fuse_windows=True, height=750)
+    fig = uc.add_hrw_stages_on_chart(fig, x_axis_mode='seas')
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('---')

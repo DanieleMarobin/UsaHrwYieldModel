@@ -287,6 +287,37 @@ def add_ww_on_chart(chart, ww):
 
         chart.add_vrect(x0=s_str, x1=e_str,fillcolor=color, opacity=0.1,layer="below", line_width=0, annotation=dict(font_size=14,textangle=90,font_color=color), annotation_position=position, annotation_text=text)
     
+def add_hrw_stages_on_chart(chart, opacity=0.15, x_axis_mode='seas', ref_year = GV.CUR_YEAR, ref_year_start=dt(GV.CUR_YEAR-1,7,1)):
+    '''
+        x_axis_mode:
+            - 'seas': use the 'seas_day' function
+            - 'find': find what it is already on the chart (if the corresponding day is not found: it break!)
+            - 'actu': doesn't apply any transformation, and uses the days as below (based on 'ref_year' passed as input)
+    '''        
+    
+    chart_dict = {
+        'Germination':      {'start': dt(ref_year-1, 9,15), 'end': dt(ref_year-1,10,15), 'color': 'lightgreen', 'opacity':opacity},
+        'Tillering':        {'start': dt(ref_year-1,10,15), 'end': dt(ref_year-1,12, 1), 'color': 'darkgreen', 'opacity':opacity},
+        'Dormancy':         {'start': dt(ref_year-1,12, 1), 'end': dt(ref_year+0, 3,15), 'color': 'darkgrey', 'opacity':opacity},
+        'Stem Extention':   {'start': dt(ref_year+0, 3,15), 'end': dt(ref_year+0, 4,15), 'color': 'yellow', 'opacity':opacity},
+        'Booting':          {'start': dt(ref_year+0, 4,15), 'end': dt(ref_year+0, 5,15), 'color': 'orange', 'opacity':opacity},
+        'Head/Flowering':   {'start': dt(ref_year+0, 5,15), 'end': dt(ref_year+0, 6,15), 'color': 'red', 'opacity':opacity},
+        }
+
+    if x_axis_mode=='seas':
+        for k,v in chart_dict.items():
+            v['start']=seas_day(v['start'], ref_year_start=ref_year_start)
+            v['end']=seas_day(v['end'], ref_year_start=ref_year_start)
+
+    elif x_axis_mode=='seas':
+        for k,v in chart_dict.items():
+            v['start']=find_on_x_axis(v['start'],chart)
+            v['end']=find_on_x_axis(v['end'],chart)
+
+    for k,v in chart_dict.items():
+        chart.add_vrect(x0=v['start'].timestamp() * 1000, x1=v['end'].timestamp() * 1000,fillcolor=v['color'], opacity=v['opacity'],layer="below", line_width=0, annotation=dict(font_size=14,textangle=0,font_color='black'), annotation_position='top', annotation_text=k)
+
+    return chart
 
 def add_interval_on_chart(chart, intervals=[], interval_index = GV.CUR_YEAR, text=[], position=['top left'],color=['red']):
     for i,d in enumerate(intervals):
@@ -446,57 +477,54 @@ def chart_security_Ohlc(df):
 
 
 # Line Chart
-if True:
-    def add_series(fig,x,y,name=None,mode='lines+markers',showlegend=True,line_width=1.0,color='black',marker_size=5,legendrank=0):
-        fig.add_trace(go.Scatter(x=x, y=y,mode=mode, line=dict(width=line_width,color=color), marker=dict(size=marker_size), name=name, showlegend=showlegend, legendrank=legendrank))
+def add_series(fig,x,y,name=None,mode='lines+markers',showlegend=True,line_width=1.0,color='black',marker_size=5,legendrank=0):
+    fig.add_trace(go.Scatter(x=x, y=y,mode=mode, line=dict(width=line_width,color=color), marker=dict(size=marker_size), name=name, showlegend=showlegend, legendrank=legendrank))
 
-    def line_chart(x,y,name=None,mode='lines+markers',showlegend=True,line_width=1.0,color='black',marker_size=5,legendrank=0,width=None,height=None):
-        fig = go.Figure()
-        add_series(fig,x,y,name,mode=mode,showlegend=showlegend,line_width=line_width,color=color,marker_size=marker_size,legendrank=legendrank)
-        update_layout(fig,marker_size,line_width,width,height)
-        return fig  
+def line_chart(x,y,name=None,mode='lines+markers',showlegend=True,line_width=1.0,color='black',marker_size=5,legendrank=0,width=None,height=None):
+    fig = go.Figure()
+    add_series(fig,x,y,name,mode=mode,showlegend=showlegend,line_width=line_width,color=color,marker_size=marker_size,legendrank=legendrank)
+    update_layout(fig,marker_size,line_width,width,height)
+    return fig  
 
 # Bar Chart
-if True:
-    def add_bar(fig,x,y,name=None,color='black'):
-        fig.add_trace(go.Bar(x=x,y=y,name=name,marker_color=color))
+def add_bar(fig,x,y,name=None,color='black'):
+    fig.add_trace(go.Bar(x=x,y=y,name=name,marker_color=color))
 
-    def bar_chart(x,y,name=None,color='black',width=1400,height=600):
-        fig = go.Figure()
-        add_bar(fig,x,y,name=name,color=color)
-        fig.update_layout(width=width,height=height)
-        return fig  
+def bar_chart(x,y,name=None,color='black',width=1400,height=600):
+    fig = go.Figure()
+    add_bar(fig,x,y,name=name,color=color)
+    fig.update_layout(width=width,height=height)
+    return fig  
 
 # Histogram Chart
-if True:
-    def histogram_chart(df, col, color_col=None, bin_size=1, barmode='relative', width=None, height=None, font_size=8, title = ''):
-        # barmode= 'group', 'overlay' or 'relative'
-        
-        # Calcs
-        sample_size = len(df[col])
+def histogram_chart(df, col, color_col=None, bin_size=1, barmode='relative', width=None, height=None, font_size=8, title = ''):
+    # barmode= 'group', 'overlay' or 'relative'
+    
+    # Calcs
+    sample_size = len(df[col])
 
-        # in case our data is in Strings
-        if df[col].dtype=='object':            
-            title= f'{title},     Sample size: {sample_size}'
-        else:
-            min_bin = 0
-            max_bin = df[col].max()+bin_size
-            counts, bins = np.histogram(df[col], np.arange(min_bin,max_bin,bin_size))
-            bins = 0.5 * (bins[:-1] + bins[1:]) # needed because otherwise there are more bins than values
+    # in case our data is in Strings
+    if df[col].dtype=='object':            
+        title= f'{title},     Sample size: {sample_size}'
+    else:
+        min_bin = 0
+        max_bin = df[col].max()+bin_size
+        counts, bins = np.histogram(df[col], np.arange(min_bin,max_bin,bin_size))
+        bins = 0.5 * (bins[:-1] + bins[1:]) # needed because otherwise there are more bins than values
 
-            df_hist = pd.DataFrame({'bins':bins ,'counts':counts})
-            mask = (df_hist['counts'] == df_hist['counts'].max())
-            df_max=df_hist[mask]
+        df_hist = pd.DataFrame({'bins':bins ,'counts':counts})
+        mask = (df_hist['counts'] == df_hist['counts'].max())
+        df_max=df_hist[mask]
 
-            title=f'{title}     Max Frequency: {df_max["bins"].values},     Sample size: {sample_size}'
+        title=f'{title}     Max Frequency: {df_max["bins"].values},     Sample size: {sample_size}'
 
-        histogram=px.histogram(df, x=col, color=color_col, barmode=barmode).update_xaxes(categoryorder='total descending')#,tickformat=",.0f")        
-        histogram.update_traces(xbins_size=bin_size)
-        histogram.update_layout(width=width,height=height,showlegend=True,yaxis_title=None,xaxis_title=None)                
-        histogram.update_layout(font=dict(size=font_size))
-        histogram.update_layout(title=title)
-        print(title)
-        return histogram
+    histogram=px.histogram(df, x=col, color=color_col, barmode=barmode).update_xaxes(categoryorder='total descending')#,tickformat=",.0f")        
+    histogram.update_traces(xbins_size=bin_size)
+    histogram.update_layout(width=width,height=height,showlegend=True,yaxis_title=None,xaxis_title=None)                
+    histogram.update_layout(font=dict(size=font_size))
+    histogram.update_layout(title=title)
+    print(title)
+    return histogram
 
 
 def chart_corr_matrix(X_df, threshold=1.0):
@@ -862,11 +890,8 @@ def waterfall(yield_contribution):
 
 def chart_actual_vs_model(model, df, y_col, x_col=None, plot_last_actual=False, height=None):
     '''
-    x_col:
-        - column used for chart x-axis: usually the time line (years for yearly models)
-
     plot_last_actual=False
-        - sometimes the last row is the the prediction (so it is better not to show it as 'actual')
+        - sometimes the last row is the prediction (so it is better not to show it as 'actual')
     '''
     
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[1,0.4])
