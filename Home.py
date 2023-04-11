@@ -204,8 +204,14 @@ if True:
 # Training DataSet
 if True:
     st.markdown('---')
-    st.markdown('##### Training DataSet')
-    st.dataframe(train_pred_df.sort_index(ascending=False), use_container_width=True)
+    st.markdown('##### Chart DataSet')
+    
+    y_pred= model.predict(train_pred_df[model.params.index])
+
+    display_df=pd.concat([train_pred_df, y_pred], axis=1)
+    display_df=display_df.rename(columns={0:'Model Yield'})
+    st.dataframe(display_df.sort_index(ascending=False), use_container_width=True)
+    
     st.markdown("---")
 
 # Model Summary
