@@ -24,11 +24,11 @@ for key in st.session_state.keys():
 
 # Analysis preferences
 if True:    
-    file='Data/Models/USA HRW Yield/GA_HRW_6_long'
-    id=30
+    # file='Data/Models/USA HRW Yield/GA_HRW_6_long'
+    # id=30
 
-    # file='Data/Models/USA HRW Yield/GA_HRW_5'
-    # id=190
+    file='Data/Models/USA HRW Yield/GA_HRW_6'
+    id=1060
 
     ref_year = GV.CUR_YEAR # Used for creating both 'train' and 'predict' df, so important to have it right    
     ref_year_start=dt(ref_year-1,7,1)
