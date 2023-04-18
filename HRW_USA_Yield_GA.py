@@ -21,6 +21,11 @@ import pandas as pd; pd.options.mode.chained_assignment = None
 import numpy as np
 
 import statsmodels.api as sm
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error
+from sklearn.model_selection import TimeSeriesSplit
+import pygad
+
 import QuickStats as qs
 
 import SnD as us
@@ -55,25 +60,44 @@ def initialize_global_variables(y='Yield', n_var=7, save_name='GA_HRW'):
 
     global multi_ww_freq_start
     global multi_ww_freq_end
+    global zeros_cols_limit
+    
+    # 350'000+ columns
+    if False:
+        # I didn't write in one line because it is easier to copy this part in Jupter (to test)
+        ref_year = GV.CUR_YEAR # Used for creating both 'train' and 'predict' df, so important to have it right    
+        ref_year_start=dt(ref_year-1,7,1)
+
+        multi_ww_dt_s=dt(ref_year-1,8,15)
+        multi_ww_dt_e=dt(ref_year  ,6,30)
+        min_single_window = 7 # in days, to avoid having 1 day window variables
+
+        multi_ww_freq_start='1D'
+        multi_ww_freq_end='1D'
+
+        zeros_cols_limit = 0.9 # 0.9 means: remove columns that are 0 more than 90% of the time
 
 
-    # I didn't write in one line because it is easier to copy this part in Jupter (to test)
-    ref_year = GV.CUR_YEAR # Used for creating both 'train' and 'predict' df, so important to have it right    
-    ref_year_start=dt(ref_year-1,7,1)
+    # trying to speed it up by reducing the number of columns
+    if True:
+        # I didn't write in one line because it is easier to copy this part in Jupter (to test)
+        ref_year = GV.CUR_YEAR # Used for creating both 'train' and 'predict' df, so important to have it right    
+        ref_year_start=dt(ref_year-1,7,1)
 
-    multi_ww_dt_s=dt(ref_year-1,8,15)
-    multi_ww_dt_e=dt(ref_year  ,6,30)
-    min_single_window = 7 # in days, to avoid having 1 day window variables
+        multi_ww_dt_s=dt(ref_year-1,8,15)
+        multi_ww_dt_e=dt(ref_year  ,6,30)
+        min_single_window = 7 # in days, to avoid having 1 day window variables
 
-    multi_ww_freq_start='1D'
-    multi_ww_freq_end='1D'
+        multi_ww_freq_start='7D'
+        multi_ww_freq_end='7D'
+
+        zeros_cols_limit = 0.8 # 0.9 means: remove columns that are 0 more than 90% of the time
 
     dormancy_s = um.seas_day(dt(ref_year-1,12,1), ref_year_start=ref_year_start)
     dormancy_e = um.seas_day(dt(ref_year  , 3,1), ref_year_start=ref_year_start)
 
-
-
     global dormancy; dormancy = set(np.arange(dormancy_s, dormancy_e, dtype='datetime64[D]'))
+    global post_dormancy_prec; post_dormancy_prec = dormancy_e + pd.DateOffset(months=1)
     
     global years; years = list(range(1985,GV.CUR_YEAR+1)) # to get the data    
     
@@ -139,7 +163,35 @@ def Define_Scope():
     fo['geo_output_column'] = GV.WS_UNIT_ALPHA
 
     # Weather Variables
-    fo['w_vars'] = [GV.WV_PREC, GV.WV_TEMP_MAX, GV.WV_TEMP_MIN, GV.WV_SDD+'25', GV.WV_SDD+'30', GV.WV_FDD+'0', GV.WV_FDD+'-5']
+    fo['w_vars'] = [
+        GV.WV_PREC, 
+        GV.WV_TEMP_MAX, 
+        GV.WV_TEMP_MIN, 
+
+        GV.WV_SDD+'10',
+        GV.WV_SDD+'11',
+        GV.WV_SDD+'12', 
+        GV.WV_SDD+'15', 
+        GV.WV_SDD+'17',
+        GV.WV_SDD+'18',
+        GV.WV_SDD+'19', 
+        GV.WV_SDD+'20',
+        GV.WV_SDD+'21', 
+        GV.WV_SDD+'22', 
+        GV.WV_SDD+'23', 
+        GV.WV_SDD+'24', 
+        GV.WV_SDD+'25',
+        GV.WV_SDD+'27',
+        GV.WV_SDD+'30', 
+
+        GV.WV_FDD+'0', 
+        GV.WV_FDD+'-1',
+        GV.WV_FDD+'-2', 
+        GV.WV_FDD+'-3',
+        GV.WV_FDD+'-4',
+        GV.WV_FDD+'-5', 
+        GV.WV_FDD+'-10', 
+        ]
 
     # Time
     # the below try it is only for when I test in the Jupiter Notebook (because it doesn't run the global initialization)
@@ -206,7 +258,7 @@ def from_raw_data_to_model_df(raw_data):
     ww_df = um.generate_weather_windows_df(raw_data['w_w_df_all']['hist'], date_start=multi_ww_dt_s, date_end=multi_ww_dt_e, ref_year_start=ref_year_start, freq_start=multi_ww_freq_start, freq_end=multi_ww_freq_end, min_single_window=min_single_window)
     print('ww_df.shape (All):', ww_df.shape)
     
-    ww_df = select_weather_windows(ww_df, ref_year_start)
+    ww_df = select_weather_windows(ww_df, ref_year_start, zeros_cols_limit)
     print('ww_df.shape (Selected):', ww_df.shape)
 
     dfs.append(ww_df)
@@ -216,9 +268,9 @@ def from_raw_data_to_model_df(raw_data):
 
     return df_model
 
-def select_weather_windows(ww_df, ref_year_start):
+def select_weather_windows(ww_df, ref_year_start, zeros_cols_limit):
     # This excludes all the columns whose value is 0 more than 90% of the time
-    mask = ((ww_df == 0).sum(axis=0) / len(ww_df)) >= 0.9
+    mask = ((ww_df == 0).sum(axis=0) / len(ww_df)) >= zeros_cols_limit
     ww_df=ww_df.loc[:, ~mask]
 
     # In case I needed it for later
