@@ -24,9 +24,6 @@ for key in st.session_state.keys():
 
 # Analysis preferences
 if True:    
-    # file='Data/Models/USA HRW Yield/GA_HRW_6_long'
-    # id=30
-
     file='Data/Models/USA HRW Yield/GA_HRW_6'
     id=1060
 
