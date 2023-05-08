@@ -167,12 +167,11 @@ if True:
             yield_pred=pd.concat([pred_df[WD][-1:], pred_df['trend'][-1:]])
 
             # multiplying by coefficients to get the individual variables contribution
-            yield_contribution=yield_pred.drop(columns=['Yield']) * model.params            
+            yield_contribution=yield_pred.drop(columns=['Yield']) * model.params
             yield_contribution['Yield']=yield_contribution.sum(axis=1)
             yield_contribution['const']=yield_contribution['const']+yield_contribution['year']
             
-            yield_contribution.index=[WD + ' Yield - Components', 'trend Yield - Components']
-            
+            yield_contribution.index=[WD + ' Yield - Components', 'trend Yield - Components']            
             yield_contribution.loc['Difference']=yield_contribution.loc[WD + ' Yield - Components']- yield_contribution.loc['trend Yield - Components']
 
             yield_contribution=pd.concat([yield_pred, yield_contribution])
